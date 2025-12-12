@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>TRON USDT Dashboard</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f6fa;
+    padding: 20px;
+  }
+
+  h1 { margin-bottom: 20px; }
+  .card-container {
+    display: flex;
+    gap: 20px;
+  }
+
+  .card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    flex: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .btn {
+    padding: 10px 14px;
+    background: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .btn:hover { background: #c9302c; }
+
+  table {
+    width: 100%;
+    margin-top: 25px;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  th {
+    background: #e9ecef;
+    text-align: left;
+  }
+</style>
+
+</head>
+<body>
+
+<h1>TRON USDT Event Dashboard</h1>
+
+<div class="card-container">
+  <div class="card">
+    <h3>Total Events</h3>
+    <p id="totalEvents">Loading…</p>
+  </div>
+
+  <div class="card">
+    <h3>Last Processed Block</h3>
+    <p id="lastBlock">Loading…</p>
+  </div>
+
+  <div class="card">
+    <h3>Actions</h3>
+    <button class="btn" onclick="resetDb()">Reset Database</button>
+  </div>
+</div>
+
+<h2 style="margin-top:30px;">Latest Events</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>TXID</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Amount</th>
+      <th>Timestamp</th>
+      <th>Block</th>
+    </tr>
+  </thead>
+  <tbody id="eventsTable"></tbody>
+</table>
+
+<script>
+async function loadDashboard() {
+  const res = await fetch("/dashboard-data");
+  const data = await res.json();
+
+  document.getElementById("totalEvents").innerText = data.totalEvents;
+  document.getElementById("lastBlock").innerText = data.lastBlock ?? "Not started";
+
+  const table = document.getElementById("eventsTable");
+  table.innerHTML = "";
+
+  data.recentEvents.forEach(ev => {
+    const row = `
+      <tr>
+        <td>${ev.txid}</td>
+        <td>${ev.sender}</td>
+        <td>${ev.receiver}</td>
+        <td>${ev.amount}</td>
+        <td>${new Date(ev.timestamp).toLocaleString()}</td>
+        <td>${ev.block_number}</td>
+      </tr>
+    `;
+    table.innerHTML += row;
+  });
+}
+
+async function resetDb() {
+  if (!confirm("Are you sure you want to reset the database?")) return;
+
+  await fetch("/reset-db", { method: "DELETE" });
+  alert("Database cleared.");
+  loadDashboard();
+}
+
+loadDashboard();
+
+// Auto-refresh every 10 seconds
+setInterval(loadDashboard, 10000);
+</script>
+
+</body>
+</html>
