@@ -64,6 +64,27 @@ app.get("/events", async (req, res) => {
 });
 
 // ---------------------
+// Reset DB and set custom start block
+// ---------------------
+app.post("/reset-db-start", express.json(), async (req, res) => {
+  try {
+    const { startBlock } = req.body; 
+    if (!startBlock || isNaN(startBlock)) {
+      return res.status(400).json({ error: "Invalid block number" });
+    }
+
+    await resetDatabase(); 
+
+    global.CUSTOM_START_BLOCK = parseInt(startBlock);
+
+    res.json({ message: `Database reset. Worker will start from block ${startBlock}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to reset database" });
+  }
+});
+
+// ---------------------
 // Start Server
 // ---------------------
 const PORT = process.env.PORT || 3000;
