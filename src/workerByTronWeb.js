@@ -1,4 +1,9 @@
 require('dotenv').config();
+const TronWeb = require('tronweb').TronWeb;
+
+const tronWeb = new TronWeb({
+    fullHost: 'https://api.trongrid.io' // free public endpoint
+});
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -26,11 +31,10 @@ function log(msg) {
 }
 
 const sleep = ms => new Promise(res => setTimeout(res, ms));
-
 const START_BLOCK = 78292201;
 
-async function pollLoop() {
 
+async function pollLoop() {
     let last = await getLastBlock();
 
     if (last) {
@@ -47,29 +51,43 @@ async function pollLoop() {
             delete global.CUSTOM_START_BLOCK;
             log(`🔄 Custom start block set → starting from block ${currentBlock}`);
         }
+
+
+
         try {
             let fingerprint = "";
             let moreData = true;
 
             while (moreData) {
-                const res = await axiosInstance.get(`/v1/contracts/${CONTRACT_USDT}/events`, {
-                    params: {
-                        block_number: currentBlock,
-                        limit: 200,
+                const res = await tronWeb.getEventResult(
+                    CONTRACT_USDT,
+                    {
+                        eventName: 'Transfer',
+                        blockNumber: currentBlock,
+                        size: 200,           // number of events
                         fingerprint: fingerprint,
-                        only_confirmed: true
+                        onlyConfirmed: true // only confirmed blocks
                     }
-                });
+                );
+                // console.log(JSON.stringify(res, null, 2));
+
+                const events = res?.data || [];
+                const nextFp = res.meta?.fingerprint;
 
 
-                const events = res.data?.data || [];
-                const nextFp = res.data?.meta?.fingerprint;
 
 
                 log(`Block ${currentBlock} | fingerprint="${nextFp}" | events=${events.length}`);
 
                 for (const ev of events) {
                     // console.log(JSON.stringify(ev, null, 2));
+                    //                     console.log({
+                    //     from: tronWeb.address.fromHex(ev.result.from),
+                    //     to: tronWeb.address.fromHex(ev.result.to),
+                    //     value: ev.result.value / 1e6, // USDT has 6 decimals
+                    //     txID: ev.transaction_id,
+                    //     block: ev.block_number
+                    // });
                     await insertEvent(ev);
                     // log(`Saved Event → tx=${ev.transaction_id}`);
                 }
@@ -95,6 +113,9 @@ async function pollLoop() {
             await sleep(POLL_MS);
         }
     }
+
+
+
 }
 
 module.exports = { pollLoop };

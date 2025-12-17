@@ -7,6 +7,11 @@ const e = require('express');
 const { send } = require('express/lib/response');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const TronWeb = require('tronweb').TronWeb;
+const tronWeb = new TronWeb({
+    fullHost: 'https://api.trongrid.io' // free public endpoint
+});
+
 
 const dbPath = path.join(__dirname, '..', 'data.sqlite');
 
@@ -64,13 +69,14 @@ module.exports = {
 
   insertEvent(ev) {
     return new Promise((resolve, reject) => {
-          const txid = ev.transaction_id;
-    const sender = (ev.result?.from || ev.result?.["0"]);
-    const receiver = (ev.result?.to || ev.result?.["1"]);
-    const amount = ev.result?.value || ev.result?.["2"];
-    const block_number = ev.block_number;
-    const timestamp = ev.block_timestamp;
-    log(ev.event_name);
+      const txid = ev.transaction_id;
+      //     from: ,
+
+      const sender = tronWeb.address.fromHex(ev.result.from);
+      const receiver = tronWeb.address.fromHex(ev.result.to);
+      const amount = ev.result?.value || ev.result?.["2"];
+      const block_number = ev.block_number;
+      const timestamp = ev.block_timestamp;
       db.run(
         `
         INSERT INTO usdt_events (txid, sender, receiver, amount, block_number, timestamp, event_name)
@@ -91,31 +97,31 @@ module.exports = {
   },
 
   // Read all events from DB
-   getEvents() {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT id, txid, sender, receiver, amount, block_number, timestamp, event_name FROM usdt_events ORDER BY id ASC`,
-      (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows);
-      }
-    );
-  });
-},
- resetDatabase() {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      db.run(`DELETE FROM usdt_events`, err => {
-        if (err) return reject(err);
-        db.run(`UPDATE state SET last_block = NULL WHERE id = 1`, err2 => {
-          if (err2) return reject(err2);
-          console.log("🗑️ Database reset successfully");
-          resolve(true);
+  getEvents() {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT id, txid, sender, receiver, amount, block_number, timestamp, event_name FROM usdt_events ORDER BY id ASC`,
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows);
+        }
+      );
+    });
+  },
+  resetDatabase() {
+    return new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run(`DELETE FROM usdt_events`, err => {
+          if (err) return reject(err);
+          db.run(`UPDATE state SET last_block = NULL WHERE id = 1`, err2 => {
+            if (err2) return reject(err2);
+            console.log("🗑️ Database reset successfully");
+            resolve(true);
+          });
         });
       });
     });
-  });
-}
+  }
 
 
 };
