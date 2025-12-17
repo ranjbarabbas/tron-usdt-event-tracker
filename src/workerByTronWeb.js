@@ -4,21 +4,12 @@ const TronWeb = require('tronweb').TronWeb;
 const tronWeb = new TronWeb({
     fullHost: 'https://api.trongrid.io' // free public endpoint
 });
-const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { db, getLastBlock, saveLastBlock, insertEvent } = require('./db');
 
 const CONTRACT_USDT = process.env.CONTRACT_ADDRESS;
 const POLL_MS = Number(process.env.POLL_INTERVAL_MS || 3000);
-const BASE = process.env.TRONGRID_BASE || 'https://api.trongrid.io';
-const API_KEY = process.env.TRONGRID_API_KEY || '';
-
-const axiosInstance = axios.create({
-    baseURL: BASE,
-    timeout: 15000,
-    headers: API_KEY ? { 'TRON-PRO-API-KEY': API_KEY } : {}
-});
 
 // log file setup
 const LOG_FILE = path.join(__dirname, '..', 'events.log');
